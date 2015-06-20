@@ -15,8 +15,8 @@ class CsvRelation(location: String,
                   separator: String,
                   sampleRatio:Double,
                   userSchema: StructType = null)(@transient val sqlContext: SQLContext)
-  extends BaseRelation with TableScan with PrunedScan with PrunedFilteredScan with Serializable{
 
+  extends BaseRelation with TableScan with PrunedScan with PrunedFilteredScan with Serializable{
   @transient val logger = Logger.getLogger(classOf[CsvRelation])
   private lazy val firstLine = {
     sqlContext.sparkContext.textFile(location).first()
@@ -43,6 +43,7 @@ class CsvRelation(location: String,
 
     }
   }
+
 
   private def inferField(value: String): DataType = {
     Try(value.toInt).map(value=>IntegerType).recoverWith {
@@ -83,7 +84,6 @@ class CsvRelation(location: String,
     //purely optimization, so if you don't push filters nothing problem
     buildScan(requiredColumns)
   }
-
   private def castTo(value:String, dataType:DataType) = {
 
     dataType match {
