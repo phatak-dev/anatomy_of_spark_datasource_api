@@ -1,7 +1,8 @@
 package com.madhukaraphatak.spark.datasource.csv
 
+import org.apache.log4j.Logger
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.sources.{BaseRelation, TableScan}
+import org.apache.spark.sql.sources.{PrunedScan, BaseRelation, TableScan}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Row, SQLContext}
 
@@ -14,8 +15,9 @@ class CsvRelation(location: String,
                   separator: String,
                   sampleRatio:Double,
                   userSchema: StructType = null)(@transient val sqlContext: SQLContext)
-  extends BaseRelation with TableScan with Serializable{
+  extends BaseRelation with TableScan with PrunedScan with Serializable{
 
+  @transient val logger = Logger.getLogger(classOf[CsvRelation])
   private lazy val firstLine = {
     sqlContext.sparkContext.textFile(location).first()
   }
@@ -49,19 +51,28 @@ class CsvRelation(location: String,
   }
 
   override def buildScan(): RDD[Row] = {
+    buildScan(schema.fieldNames)
+  }
+  override def buildScan(requiredColumns: Array[String]): RDD[Row] = {
+
+    logger.info("pruned build scan for columns " + requiredColumns.toList)
     val rdd = sqlContext.sparkContext.textFile(location)
     val schemaFields = schema.fields
     val dataLines = rdd.filter(row => row != firstLine)
     val rowRDD = dataLines.map(row => {
       val columnValues = row.split(separator)
       //type cast to right type
-      val typedValues = columnValues.zipWithIndex.map{
-        case (value,index) => {
+      val typedValues = columnValues.zipWithIndex.map {
+        case (value, index) => {
+          val columnName = schemaFields(index).name
           val dataType = schemaFields(index).dataType
-          castTo(value,dataType)
+          val castedValue = castTo(value, dataType)
+          if (requiredColumns.contains(columnName)) Some(castedValue)
+          else None
         }
       }
-      Row.fromSeq(typedValues)
+      val selectedValues = typedValues.filter(_.isDefined).map(value => value.get)
+      Row.fromSeq(selectedValues)
     })
     rowRDD
   }
