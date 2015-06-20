@@ -5,7 +5,7 @@ import org.apache.spark.sql.sources.{BaseRelation, RelationProvider, SchemaRelat
 import org.apache.spark.sql.types.StructType
 
 /**
- * Created by madhu on 20/6/15.
+ * Default source for Csv
  */
 class DefaultSource extends RelationProvider with SchemaRelationProvider{
   override def createRelation(sqlContext: SQLContext, parameters: Map[String, String]): BaseRelation = {
@@ -16,6 +16,7 @@ class DefaultSource extends RelationProvider with SchemaRelationProvider{
     //check parameters
     parameters.getOrElse("path", sys.error("'path' must be specified for CSV data."))
     val separator = parameters.get("separator").getOrElse(",")
-    new CsvRelation(parameters.get("path").get,separator = separator,schema)(sqlContext)
+    val sampleRatio= parameters.get("sampleRatio").map(_.toDouble).getOrElse(1.0)
+    new CsvRelation(parameters.get("path").get,separator = separator,sampleRatio,schema)(sqlContext)
   }
 }
