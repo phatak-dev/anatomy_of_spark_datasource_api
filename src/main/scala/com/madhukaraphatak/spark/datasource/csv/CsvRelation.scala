@@ -2,7 +2,7 @@ package com.madhukaraphatak.spark.datasource.csv
 
 import org.apache.log4j.Logger
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.sources.{PrunedScan, BaseRelation, TableScan}
+import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Row, SQLContext}
 
@@ -15,8 +15,8 @@ class CsvRelation(location: String,
                   separator: String,
                   sampleRatio:Double,
                   userSchema: StructType = null)(@transient val sqlContext: SQLContext)
-  extends BaseRelation with TableScan with PrunedScan with Serializable{
 
+  extends BaseRelation with TableScan with PrunedScan with PrunedFilteredScan with Serializable{
   @transient val logger = Logger.getLogger(classOf[CsvRelation])
   private lazy val firstLine = {
     sqlContext.sparkContext.textFile(location).first()
@@ -43,6 +43,7 @@ class CsvRelation(location: String,
 
     }
   }
+
 
   private def inferField(value: String): DataType = {
     Try(value.toInt).map(value=>IntegerType).recoverWith {
@@ -77,6 +78,12 @@ class CsvRelation(location: String,
     rowRDD
   }
 
+  override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {
+
+    logger.info("pruned build scan for columns " + requiredColumns.toList + "with filters " + filters.toList)
+    //purely optimization, so if you don't push filters no problem
+    buildScan(requiredColumns)
+  }
   private def castTo(value:String, dataType:DataType) = {
 
     dataType match {
