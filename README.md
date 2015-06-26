@@ -45,6 +45,7 @@ The following are the different tags and sequence of development
 * v0.3 - Data type inference implemented
 * v0.4 - Save option implemented
 * v0.5 - Prune column implemented
+* v0.6 - Prune filters implemented
 
 
 ## 7. Up to date
