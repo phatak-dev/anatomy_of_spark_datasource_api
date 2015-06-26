@@ -81,7 +81,7 @@ class CsvRelation(location: String,
   override def buildScan(requiredColumns: Array[String], filters: Array[Filter]): RDD[Row] = {
 
     logger.info("pruned build scan for columns " + requiredColumns.toList + "with filters " + filters.toList)
-    //purely optimization, so if you don't push filters nothing problem
+    //purely optimization, so if you don't push filters no problem
     buildScan(requiredColumns)
   }
   private def castTo(value:String, dataType:DataType) = {
